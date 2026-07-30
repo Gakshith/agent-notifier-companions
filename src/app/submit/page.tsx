@@ -20,12 +20,27 @@ export default function SubmitPage() {
           frame rate, size, and how it moves. No code, ever — which is why installing one
           cannot run anything on your machine.
         </p>
-        <a
-          href="https://github.com/Gakshith/agent-notifier/blob/main/docs/companion-packs.md"
-          className="mt-4 inline-block text-amber-accent hover:underline"
-        >
-          Read the pack format
-        </a>
+        {/* Deliberately not linking to the app repo's companion-packs.md: that document
+            describes manifest v1, under which community packs are not loadable at all.
+            Summarise the v2 rules this site actually enforces instead. */}
+        <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div>
+            <dt className="text-ink-400">Frames</dt>
+            <dd className="mt-1 text-ink-200">1–96 transparent PNGs</dd>
+          </div>
+          <div>
+            <dt className="text-ink-400">Frame size</dt>
+            <dd className="mt-1 text-ink-200">16–512 px per side</dd>
+          </div>
+          <div>
+            <dt className="text-ink-400">Frame rate</dt>
+            <dd className="mt-1 text-ink-200">1–24 fps</dd>
+          </div>
+          <div>
+            <dt className="text-ink-400">Movement</dt>
+            <dd className="mt-1 text-ink-200">airborne, grounded, or hovering</dd>
+          </div>
+        </dl>
       </section>
 
       <section className="mt-8">
