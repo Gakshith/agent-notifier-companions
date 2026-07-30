@@ -69,7 +69,7 @@ Scaffolding is written by hand rather than with `create-next-app`, because the d
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^3.0.0"
   }
 }
 ```
