@@ -46,4 +46,21 @@ describe('firecracker simulation', () => {
     expect(clampByte(999)).toBe(255);
     expect(clampByte(-10)).toBe(0);
   });
+
+  it('has at least 300 lit pixels (alpha > 10) on every frame of the loop', () => {
+    // The hero preview is a looping <img>; a visitor can land on ANY frame,
+    // not just the middle of the show. A blank arrival frame (historically
+    // frame index 0) reads as a broken/empty embed, so every frame must have
+    // a baseline of visible activity -- no dead spots across the loop.
+    const offenders = [];
+    for (let i = 0; i < FRAME_COUNT; i += 1) {
+      const frame = renderFrame(i);
+      let litPixels = 0;
+      for (let p = 3; p < frame.length; p += 4) {
+        if (frame[p] > 10) litPixels += 1;
+      }
+      if (litPixels < 300) offenders.push(`frame ${i}: ${litPixels} lit pixels`);
+    }
+    expect(offenders, `frames below the 300 lit-pixel floor:\n${offenders.join('\n')}`).toEqual([]);
+  });
 });

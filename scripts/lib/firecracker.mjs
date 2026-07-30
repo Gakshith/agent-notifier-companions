@@ -40,15 +40,22 @@ function mulberry32(seed) {
 }
 
 const TRAVEL_DURATION = 0.55; // comet flight time, matches the Swift `.move(duration: 0.55)`
-const FADE_DEADLINE = 3.9; // every particle must fully fade by here so frame 48 -> frame 1 loops cleanly
 const TRAIL_COUNT = 6;
 const CANVAS_MARGIN = 6; // inset every splat from the edge so corner pixels are provably always alpha-0
 
-// Shell plan: 8 launches, the last four overlapping closely as a "grand
-// finale" -- same shape as FireworkNode.shellPlan(state: .completed) (paired
-// delays, willow accents) but retimed to fit a 4s loop. One shell uses willow,
-// one uses sputter, so both variants described in the Swift source are
-// exercised.
+// Every shell's own lifespan (comet travel + its longest particle lifetime,
+// worst case ~0.55 + 2.8*1.2 =~ 3.91s for a willow shell) comfortably fits
+// inside one DURATION (4s) period, so `drawShell` can treat the timeline as
+// cyclic -- see the `localT` wrap in `drawShell` below -- without any two
+// recurrences of the same shell ever overlapping.
+
+// Shell plan: launches spread across the WHOLE 4s loop, not just the first
+// 2.24s -- same shape as FireworkNode.shellPlan(state: .completed) (paired
+// delays, willow accents) but retimed so the tail (2.6s-3.8s) stays busy and,
+// via the cyclic wrap, so does the very start of the loop (a shell delayed
+// at e.g. 3.0s has already burst and is still showering sparks by the time
+// the loop wraps back to frame 0). One shell uses willow, one uses sputter,
+// so both variants described in the Swift source are exercised.
 const SHELL_DEFS = [
   { delay: 0.04, colors: [GOLD, CYAN], willow: true, sputter: false },
   { delay: 0.49, colors: [GREEN, MAGENTA], willow: false, sputter: false },
@@ -59,6 +66,12 @@ const SHELL_DEFS = [
   { delay: 2.09, colors: [CYAN, GREEN], willow: false, sputter: false },
   { delay: 2.24, colors: [MAGENTA, CYAN], willow: true, sputter: false },
   { delay: 2.24, colors: [GREEN, GOLD], willow: false, sputter: false },
+  // second wave -- keeps the back half of the loop from going dark, and
+  // (via the cyclic wrap) keeps the seam at frame 0 alive too.
+  { delay: 2.62, colors: [GOLD, GREEN], willow: false, sputter: false },
+  { delay: 2.95, colors: [CYAN, MAGENTA], willow: true, sputter: false },
+  { delay: 3.24, colors: [GREEN, CYAN], willow: false, sputter: true },
+  { delay: 3.58, colors: [MAGENTA, GOLD], willow: false, sputter: false },
 ];
 
 function lerp(a, b, t) {
@@ -149,18 +162,6 @@ function buildShell(def, rng) {
   const burstY = HEIGHT * (0.33 + rng() * 0.32);
 
   const emitters = emitterParams(def);
-  const burstTime = def.delay + TRAVEL_DURATION;
-  const longestBase = Math.max(
-    emitters.chrysanthemum.lifetime,
-    emitters.ring.lifetime,
-    emitters.glitter.lifetime,
-    emitters.willow?.lifetime ?? 0,
-  );
-  // Auto-derive how much to compress this shell's particle lifetimes so it
-  // always finishes fading by FADE_DEADLINE, however late it launches --
-  // this is what keeps the finale's late, overlapping bursts from spilling
-  // past the loop point.
-  const lifeScale = Math.max(0.3, Math.min(1, (FADE_DEADLINE - burstTime) / longestBase));
 
   const particleGroups = {};
   for (const [name, params] of Object.entries(emitters)) {
@@ -173,7 +174,11 @@ function buildShell(def, rng) {
       list.push({
         angle: rng() * Math.PI * 2,
         speed: params.speed + (rng() * 2 - 1) * params.speedRange * 0.5,
-        lifetime: params.lifetime * lifeScale * (1 + (rng() * 2 - 1) * 0.2),
+        // Full source lifetime (+/-20% jitter) -- no artificial compression.
+        // Every shell's own lifespan already fits inside one DURATION period
+        // (see the note above SHELL_DEFS), and the cyclic wrap in drawShell
+        // is what keeps a late burst's tail from being cut off at the seam.
+        lifetime: params.lifetime * (1 + (rng() * 2 - 1) * 0.2),
         gravity: params.gravity,
         color: params.color,
         baseRadius: sparkRadius(params.scale),
@@ -234,8 +239,14 @@ function splat(canvas, cx, cy, radius, color, alpha) {
 }
 
 function drawShell(canvas, shell, t) {
-  const localT = t - shell.delay;
-  if (localT < 0) return;
+  // Cyclic time: a shell "recurs" every DURATION seconds. Wrapping localT
+  // into [0, DURATION) means a shell delayed late in the cycle (e.g. 3.0s)
+  // is already mid-burst, sparks falling, by the time t wraps back to the
+  // start of the next loop -- exactly the continuity the loop seam needs.
+  // Safe because every shell's own lifespan (travel + longest particle
+  // lifetime) is well under one DURATION period, so recurrences never
+  // overlap themselves.
+  const localT = (((t - shell.delay) % DURATION) + DURATION) % DURATION;
 
   if (localT < TRAVEL_DURATION) {
     // Comet phase: linear flight from launch to burst point (the Swift
