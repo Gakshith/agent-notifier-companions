@@ -9,9 +9,24 @@ describe('buildInstallUrl', () => {
   });
 
   it('percent-encodes characters that would break the query', () => {
-    expect(buildInstallUrl('https://example.com/a b?c=1&d=2')).toBe(
-      'agent-notifier://install?url=https%3A%2F%2Fexample.com%2Fa%20b%3Fc%3D1%26d%3D2',
+    expect(buildInstallUrl('https://example.com/x?c=1&d=2')).toBe(
+      'agent-notifier://install?url=https%3A%2F%2Fexample.com%2Fx%3Fc%3D1%26d%3D2',
     );
+  });
+
+  it('round-trips a url that already contains a percent-encoded sequence', () => {
+    const original = 'https://example.com/a%20b';
+    const link = buildInstallUrl(original);
+    const encoded = link.slice('agent-notifier://install?url='.length);
+    expect(decodeURIComponent(encoded)).toBe(original);
+  });
+
+  it('does not leak leading whitespace into the emitted link', () => {
+    // requireHttpsUrl validates via `new URL(...)`, which strips leading C0
+    // whitespace during parsing. Emitting parsed.toString() means the link
+    // reflects the normalized value, not the raw whitespace-prefixed input.
+    const link = buildInstallUrl(' https://example.com/x');
+    expect(link).toBe('agent-notifier://install?url=https%3A%2F%2Fexample.com%2Fx');
   });
 
   it.each([

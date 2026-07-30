@@ -13,10 +13,10 @@ function requireHttpsUrl(packUrl: string): string {
   if (parsed.protocol !== 'https:') {
     throw new Error(`pack url must use https, received "${parsed.protocol}"`);
   }
-  // Return the original string, not parsed.toString(): URL's parser normalizes
-  // characters like the space in a path to %20, which would then get double
-  // percent-encoded (%2520) when buildInstallUrl runs it through encodeURIComponent.
-  return packUrl;
+  // Return the parsed, normalized URL so this function emits precisely what it
+  // validated — never the raw input, which could carry things (leading whitespace,
+  // etc.) that URL silently strips during parsing.
+  return parsed.toString();
 }
 
 export function buildInstallUrl(packUrl: string): string {
