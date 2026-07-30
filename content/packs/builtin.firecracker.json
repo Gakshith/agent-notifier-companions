@@ -5,7 +5,7 @@
   "author": "Agent Notifier",
   "summary": "A procedural fireworks burst that celebrates finished work",
   "symbolName": "sparkles",
-  "movementStyle": "hovering",
+  "movementStyle": "burst",
   "renderer": "sprite",
   "animation": {
     "fps": 12,

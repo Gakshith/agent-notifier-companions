@@ -23,7 +23,7 @@ const SHAPES = {
     displayName: 'Halo Ring',
     summary: 'A slim teal ring that spins in place above your work',
     symbolName: 'circle.dashed',
-    movementStyle: 'hovering',
+    movementStyle: 'airborne',
     colour: [45, 212, 191],
   },
   comet: {

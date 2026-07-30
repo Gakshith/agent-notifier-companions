@@ -81,8 +81,49 @@ describe('validatePackMeta', () => {
     expect(() => validatePackMeta({ ...valid, renderer: 'butterfly' })).toThrow(/renderer/i);
   });
 
-  it('rejects the burst movement style', () => {
-    expect(() => validatePackMeta({ ...valid, movementStyle: 'burst' })).toThrow(/movementStyle/i);
+  it.each(['airborne', 'grounded'])(
+    'accepts movementStyle %s for a community.* id',
+    (movementStyle) => {
+      expect(validatePackMeta({ ...valid, movementStyle }).movementStyle).toBe(movementStyle);
+    },
+  );
+
+  it.each(['airborne', 'grounded', 'burst'])(
+    'accepts movementStyle %s for a builtin.* id',
+    (movementStyle) => {
+      const result = validatePackMeta({ ...valid, id: 'builtin.glow-wing', movementStyle });
+      expect(result.movementStyle).toBe(movementStyle);
+    },
+  );
+
+  it('rejects the burst movement style for a community.* id, explaining the compiled-renderer reason', () => {
+    expect(() => validatePackMeta({ ...valid, movementStyle: 'burst' })).toThrow(
+      /compiled firework renderer/i,
+    );
+  });
+
+  it('rejects the hovering movement style for a community.* id', () => {
+    expect(() => validatePackMeta({ ...valid, movementStyle: 'hovering' })).toThrow(
+      /movementStyle/i,
+    );
+  });
+
+  it('rejects the hovering movement style for a builtin.* id', () => {
+    expect(() =>
+      validatePackMeta({ ...valid, id: 'builtin.glow-wing', movementStyle: 'hovering' }),
+    ).toThrow(/movementStyle/i);
+  });
+
+  it('lists only the values allowed for a community.* id when movementStyle is invalid', () => {
+    expect(() => validatePackMeta({ ...valid, movementStyle: 'hovering' })).toThrow(
+      /movementStyle must be one of airborne, grounded$/,
+    );
+  });
+
+  it('lists burst among the values allowed for a builtin.* id when movementStyle is invalid', () => {
+    expect(() =>
+      validatePackMeta({ ...valid, id: 'builtin.glow-wing', movementStyle: 'hovering' }),
+    ).toThrow(/movementStyle must be one of airborne, grounded, burst$/);
   });
 
   it('rejects a blank display name', () => {

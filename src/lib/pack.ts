@@ -1,4 +1,4 @@
-export type MovementStyle = 'airborne' | 'grounded' | 'hovering';
+export type MovementStyle = 'airborne' | 'grounded' | 'burst';
 export type LoopMode = 'forward' | 'pingPong';
 
 export type PackAnimation = {
@@ -28,7 +28,11 @@ export type PackMeta = {
 
 export const RESERVED_PACK_IDS: readonly string[] = ['butterfly', 'firecracker'];
 
-const MOVEMENT_STYLES: readonly MovementStyle[] = ['airborne', 'grounded', 'hovering'];
+// `burst` is bound to the app's compiled firework renderer (SpriteKit code, not
+// frames), so a community sprite pack cannot express it. It is valid only when
+// the id resolves to a builtin distribution.
+const MOVEMENT_STYLES: readonly MovementStyle[] = ['airborne', 'grounded', 'burst'];
+const COMMUNITY_MOVEMENT_STYLES: readonly MovementStyle[] = ['airborne', 'grounded'];
 const LOOP_MODES: readonly LoopMode[] = ['forward', 'pingPong'];
 const ID_PATTERN = /^(community|builtin)\.[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
@@ -96,8 +100,16 @@ export function validatePackMeta(raw: unknown): PackMeta {
   if (source.renderer !== 'sprite') {
     throw new Error('renderer must be "sprite"');
   }
-  if (!MOVEMENT_STYLES.includes(source.movementStyle as MovementStyle)) {
-    throw new Error(`movementStyle must be one of ${MOVEMENT_STYLES.join(', ')}`);
+  const movementStyle = source.movementStyle as MovementStyle;
+  const allowedMovementStyles = distribution === 'builtin' ? MOVEMENT_STYLES : COMMUNITY_MOVEMENT_STYLES;
+  if (!MOVEMENT_STYLES.includes(movementStyle)) {
+    throw new Error(`movementStyle must be one of ${allowedMovementStyles.join(', ')}`);
+  }
+  if (movementStyle === 'burst' && distribution !== 'builtin') {
+    throw new Error(
+      'movementStyle "burst" is bound to the app\'s compiled firework renderer and cannot be expressed by a community sprite pack; use one of ' +
+        `${allowedMovementStyles.join(', ')}`,
+    );
   }
 
   const symbolName = cleanText(source.symbolName, 'symbolName', 60);
@@ -112,7 +124,7 @@ export function validatePackMeta(raw: unknown): PackMeta {
     author: cleanText(source.author, 'author', 60),
     summary: cleanText(source.summary, 'summary', 160),
     symbolName,
-    movementStyle: source.movementStyle as MovementStyle,
+    movementStyle,
     renderer: 'sprite',
     animation: validateAnimation(source.animation),
     distribution,

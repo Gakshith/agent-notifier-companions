@@ -5,7 +5,7 @@
   "author": "Agent Notifier",
   "summary": "A slim teal ring that spins in place above your work",
   "symbolName": "circle.dashed",
-  "movementStyle": "hovering",
+  "movementStyle": "airborne",
   "renderer": "sprite",
   "animation": {
     "fps": 12,

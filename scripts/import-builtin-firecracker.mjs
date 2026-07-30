@@ -23,10 +23,11 @@ const MANIFEST = {
   author: 'Agent Notifier',
   summary: 'A procedural fireworks burst that celebrates finished work',
   symbolName: 'sparkles',
-  // The app calls this motion "burst", but that value is bound to its compiled
-  // firework renderer. As a declarative preview it is a stationary display, so
-  // the manifest describes it with the sprite vocabulary the schema allows.
-  movementStyle: 'hovering',
+  // The app really does use "burst" for this companion: it is bound to the
+  // compiled firework renderer, not a declarative sprite sequence. That value
+  // is permitted here because this manifest's id is a builtin.* id — the
+  // schema rejects "burst" for community packs, which can't express it.
+  movementStyle: 'burst',
   renderer: 'sprite',
   animation: {
     fps: FPS,

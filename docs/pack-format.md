@@ -37,7 +37,10 @@ Distributed as a ZIP holding exactly one `.agentpack` directory.
 
 - `id` must be `community.<slug>`; the slug is 1–40 characters of lowercase letters,
   digits, and hyphens, and cannot start or end with a hyphen.
-- `movementStyle` is `airborne`, `grounded`, or `hovering`.
+- `movementStyle` is `airborne` or `grounded`. `burst` also exists, but it is
+  reserved for built-in companions: it is bound to the app's compiled firework
+  renderer, not a declarative sprite sequence, so a community sprite pack cannot
+  express it and manifests with a `community.*` id are rejected for using it.
 - `renderer` must be exactly `"sprite"`.
 - `loop` is `forward` or `pingPong`.
 - `displayName`, `author`, `summary`, and `symbolName` must all be non-empty after
