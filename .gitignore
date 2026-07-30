@@ -1,0 +1,28 @@
+# Local agent/assistant config — internal tooling, never ship
+.claude/
+.claude-flow/
+CLAUDE.md
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Worktrees
+.worktrees/
+
+# OS / editor metadata
+.DS_Store
+.idea/
+.vscode/
+
+*.log
+*.tmp
