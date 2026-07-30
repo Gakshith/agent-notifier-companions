@@ -36,9 +36,11 @@ async function readPackFile(contentDir: string, fileName: string): Promise<Pack>
 }
 
 export async function listPacks(contentDir: string = CONTENT_DIR): Promise<Pack[]> {
-  const entries = await readdir(contentDir);
+  const entries = await readdir(contentDir, { withFileTypes: true });
   const packs = await Promise.all(
-    entries.filter((name) => name.endsWith('.json')).map((name) => readPackFile(contentDir, name)),
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+      .map((entry) => readPackFile(contentDir, entry.name)),
   );
   return packs.sort((a, b) =>
     a.displayName.localeCompare(b.displayName, 'en', { sensitivity: 'base' }),

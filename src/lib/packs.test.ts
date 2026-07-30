@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -65,6 +65,17 @@ describe('listPacks', () => {
     const bad = await mkdtemp(join(tmpdir(), 'anc-json-'));
     await writeFile(join(bad, 'community.broken.json'), '{ not json');
     await expect(listPacks(bad)).rejects.toThrow(/community\.broken\.json/);
+  });
+
+  it('ignores a subdirectory whose name ends in .json', async () => {
+    const dirWithStraySubdir = await mkdtemp(join(tmpdir(), 'anc-dirjson-'));
+    await mkdir(join(dirWithStraySubdir, 'community.trap.json'));
+    await writeFile(
+      join(dirWithStraySubdir, 'community.apple.json'),
+      JSON.stringify(meta('community.apple', 'apple')),
+    );
+    const packs = await listPacks(dirWithStraySubdir);
+    expect(packs.map((pack) => pack.id)).toEqual(['community.apple']);
   });
 });
 
