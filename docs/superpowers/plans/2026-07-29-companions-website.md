@@ -726,6 +726,9 @@ git commit -m "feat: load and validate packs from the content directory"
 - Produces:
   - `function buildInstallUrl(packUrl: string): string`
   - `function buildCliCommand(packUrl: string): string`
+  - `function formatCliCommand(packUrl: string): string` — the same command without the
+    https requirement, for the local-development case where there is no https origin.
+    Exists so the command string is written in exactly one place.
   - `const MIN_APP_VERSION: string` — the string the UI shows, `'0.2'`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -734,7 +737,7 @@ Create `src/lib/install-url.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { buildCliCommand, buildInstallUrl } from './install-url';
+import { buildCliCommand, buildInstallUrl, formatCliCommand } from './install-url';
 
 describe('buildInstallUrl', () => {
   it('wraps an https url in the install deep link', () => {
@@ -770,6 +773,19 @@ describe('buildCliCommand', () => {
     expect(() => buildCliCommand('http://example.com/pack.zip')).toThrow(/https/i);
   });
 });
+
+describe('formatCliCommand', () => {
+  it('uses the same wording as buildCliCommand', () => {
+    const url = 'https://example.com/pack.zip';
+    expect(formatCliCommand(url)).toBe(buildCliCommand(url));
+  });
+
+  it('accepts a local http url so the dev server can show a usable command', () => {
+    expect(formatCliCommand('http://localhost:3000/packs/community.fox/pack.zip')).toBe(
+      'agent-notifier companion install http://localhost:3000/packs/community.fox/pack.zip',
+    );
+  });
+});
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -802,8 +818,14 @@ export function buildInstallUrl(packUrl: string): string {
   return `agent-notifier://install?url=${encodeURIComponent(requireHttpsUrl(packUrl))}`;
 }
 
+// The command text lives here alone. The detail page must also render a command for
+// a local http origin, and duplicating this template there would let the two drift.
+export function formatCliCommand(packUrl: string): string {
+  return `agent-notifier companion install ${packUrl}`;
+}
+
 export function buildCliCommand(packUrl: string): string {
-  return `agent-notifier companion install ${requireHttpsUrl(packUrl)}`;
+  return formatCliCommand(requireHttpsUrl(packUrl));
 }
 ```
 
@@ -1582,7 +1604,7 @@ export function InstallButton({ installUrl }: { installUrl: string | null }) {
 import { notFound } from 'next/navigation';
 import { CopyCommand } from '@/components/CopyCommand';
 import { InstallButton } from '@/components/InstallButton';
-import { buildCliCommand, buildInstallUrl } from '@/lib/install-url';
+import { buildCliCommand, buildInstallUrl, formatCliCommand } from '@/lib/install-url';
 import { getPack, listPacks } from '@/lib/packs';
 
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? 'http://localhost:3000';
@@ -1604,7 +1626,7 @@ export default async function PackPage({ params }: { params: Promise<{ id: strin
   const installUrl = isHttps ? buildInstallUrl(absolutePackUrl) : null;
   const command = isHttps
     ? buildCliCommand(absolutePackUrl)
-    : `agent-notifier companion install ${absolutePackUrl}`;
+    : formatCliCommand(absolutePackUrl);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
