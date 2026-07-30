@@ -90,66 +90,68 @@ async function main() {
   }
 
   const staging = await mkdtemp(join(tmpdir(), 'anc-seed-'));
-  const packDir = join(staging, `${shape.displayName.replace(/\s+/g, '')}.agentpack`);
-  const framesDir = join(packDir, 'frames');
-  await mkdir(framesDir, { recursive: true });
+  try {
+    const packDir = join(staging, `${shape.displayName.replace(/\s+/g, '')}.agentpack`);
+    const framesDir = join(packDir, 'frames');
+    await mkdir(framesDir, { recursive: true });
 
-  const checksums = {};
-  const framePaths = [];
-  for (let index = 0; index < FRAME_COUNT; index += 1) {
-    const name = `frame_${String(index + 1).padStart(3, '0')}.png`;
-    const png = drawFrame(shape, index);
-    const target = join(framesDir, name);
-    await writeFile(target, png);
-    checksums[`frames/${name}`] = createHash('sha256').update(png).digest('hex');
-    framePaths.push(target);
+    const checksums = {};
+    const framePaths = [];
+    for (let index = 0; index < FRAME_COUNT; index += 1) {
+      const name = `frame_${String(index + 1).padStart(3, '0')}.png`;
+      const png = drawFrame(shape, index);
+      const target = join(framesDir, name);
+      await writeFile(target, png);
+      checksums[`frames/${name}`] = createHash('sha256').update(png).digest('hex');
+      framePaths.push(target);
+    }
+
+    const manifest = {
+      version: 2,
+      id: shape.id,
+      displayName: shape.displayName,
+      author: 'Agent Notifier',
+      summary: shape.summary,
+      symbolName: shape.symbolName,
+      movementStyle: shape.movementStyle,
+      renderer: 'sprite',
+      animation: {
+        fps: FPS,
+        frameCount: FRAME_COUNT,
+        width: SIZE,
+        height: SIZE,
+        loop: 'forward',
+      },
+    };
+
+    await writeFile(join(packDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFile(join(packDir, 'checksums.json'), `${JSON.stringify(checksums, null, 2)}\n`);
+
+    const publicDir = join(process.cwd(), 'public', 'packs', shape.id);
+    await mkdir(publicDir, { recursive: true });
+
+    // zip appends to an existing archive rather than replacing it, so stale frames
+    // would survive a regeneration. Remove the target first to stay idempotent.
+    const zipPath = join(publicDir, 'pack.zip');
+    await rm(zipPath, { force: true });
+
+    // -X omits extra file attributes so the archive is reproducible across machines.
+    execFileSync('zip', ['-X', '-q', '-r', zipPath, '.'], { cwd: staging });
+
+    execFileSync('img2webp', [
+      '-loop', '0',
+      '-d', String(Math.round(1000 / FPS)),
+      ...framePaths,
+      '-o', join(publicDir, 'preview.webp'),
+    ]);
+
+    await writeFile(
+      join(process.cwd(), 'content', 'packs', `${shape.id}.json`),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+    );
+  } finally {
+    await rm(staging, { recursive: true, force: true });
   }
-
-  const manifest = {
-    version: 2,
-    id: shape.id,
-    displayName: shape.displayName,
-    author: 'Agent Notifier',
-    summary: shape.summary,
-    symbolName: shape.symbolName,
-    movementStyle: shape.movementStyle,
-    renderer: 'sprite',
-    animation: {
-      fps: FPS,
-      frameCount: FRAME_COUNT,
-      width: SIZE,
-      height: SIZE,
-      loop: 'forward',
-    },
-  };
-
-  await writeFile(join(packDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  await writeFile(join(packDir, 'checksums.json'), `${JSON.stringify(checksums, null, 2)}\n`);
-
-  const publicDir = join(process.cwd(), 'public', 'packs', shape.id);
-  await mkdir(publicDir, { recursive: true });
-
-  // zip appends to an existing archive rather than replacing it, so stale frames
-  // would survive a regeneration. Remove the target first to stay idempotent.
-  const zipPath = join(publicDir, 'pack.zip');
-  await rm(zipPath, { force: true });
-
-  // -X omits extra file attributes so the archive is reproducible across machines.
-  execFileSync('zip', ['-X', '-q', '-r', zipPath, '.'], { cwd: staging });
-
-  execFileSync('img2webp', [
-    '-loop', '0',
-    '-d', String(Math.round(1000 / FPS)),
-    ...framePaths,
-    '-o', join(publicDir, 'preview.webp'),
-  ]);
-
-  await writeFile(
-    join(process.cwd(), 'content', 'packs', `${shape.id}.json`),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
-
-  await rm(staging, { recursive: true, force: true });
   console.log(`seeded ${shape.id}`);
 }
 

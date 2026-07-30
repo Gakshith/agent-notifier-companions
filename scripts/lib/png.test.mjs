@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inflateSync } from 'node:zlib';
+import { crc32, inflateSync } from 'node:zlib';
 import { encodePng } from './png.mjs';
 
 const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -10,7 +10,9 @@ function readChunks(png) {
   while (offset < png.length) {
     const length = png.readUInt32BE(offset);
     const type = png.subarray(offset + 4, offset + 8).toString('ascii');
-    chunks.push({ type, data: png.subarray(offset + 8, offset + 8 + length) });
+    const data = png.subarray(offset + 8, offset + 8 + length);
+    const crc = png.subarray(offset + 8 + length, offset + 12 + length);
+    chunks.push({ type, data, crc });
     offset += 12 + length;
   }
   return chunks;
@@ -49,5 +51,16 @@ describe('encodePng', () => {
 
   it('rejects a buffer whose length does not match the dimensions', () => {
     expect(() => encodePng(2, 2, Buffer.alloc(4))).toThrow(/length/i);
+  });
+
+  it('writes a valid CRC trailer for every chunk, per zlib.crc32', () => {
+    const png = encodePng(2, 2, Buffer.alloc(2 * 2 * 4, 0xab));
+    const chunks = readChunks(png);
+    expect(chunks.map((c) => c.type)).toEqual(['IHDR', 'IDAT', 'IEND']);
+    for (const { type, data, crc } of chunks) {
+      const typeAndData = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+      const expected = crc32(typeAndData) >>> 0;
+      expect(crc.readUInt32BE(0)).toBe(expected);
+    }
   });
 });
