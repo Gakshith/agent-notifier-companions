@@ -60,4 +60,27 @@ describe('checkPackAssets', () => {
     const problems = await checkPackAssets(contentDir, publicPacksDir);
     expect(problems).toEqual([]);
   });
+
+  it('does not require pack.zip for a builtin pack', async () => {
+    const { contentDir, publicPacksDir } = await fixture({ id: 'builtin.glow-wing', withZip: false });
+    expect(await checkPackAssets(contentDir, publicPacksDir)).toEqual([]);
+  });
+
+  it('reports a pack.zip present for a builtin pack as a problem', async () => {
+    const { contentDir, publicPacksDir } = await fixture({ id: 'builtin.glow-wing', withZip: true });
+    const problems = await checkPackAssets(contentDir, publicPacksDir);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/pack\.zip/);
+  });
+
+  it('still requires preview.webp for a builtin pack', async () => {
+    const { contentDir, publicPacksDir } = await fixture({
+      id: 'builtin.glow-wing',
+      withPreview: false,
+      withZip: false,
+    });
+    const problems = await checkPackAssets(contentDir, publicPacksDir);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/preview\.webp/);
+  });
 });

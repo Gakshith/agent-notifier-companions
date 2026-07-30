@@ -15,7 +15,7 @@ const valid = {
 
 describe('validatePackMeta', () => {
   it('accepts a well-formed manifest', () => {
-    expect(validatePackMeta(valid)).toEqual(valid);
+    expect(validatePackMeta(valid)).toEqual({ ...valid, distribution: 'community' });
   });
 
   it('rejects a non-object', () => {
@@ -43,6 +43,38 @@ describe('validatePackMeta', () => {
 
   it.each(['butterfly', 'firecracker'])('rejects the reserved id %s', (id) => {
     expect(() => validatePackMeta({ ...valid, id })).toThrow(/reserved/i);
+  });
+
+  it('accepts a builtin.<slug> id and derives distribution: builtin', () => {
+    const result = validatePackMeta({ ...valid, id: 'builtin.glow-wing' });
+    expect(result.id).toBe('builtin.glow-wing');
+    expect(result.distribution).toBe('builtin');
+  });
+
+  it('derives distribution: community for a community.<slug> id', () => {
+    expect(validatePackMeta(valid).distribution).toBe('community');
+  });
+
+  it('accepts hyphenated builtin slugs', () => {
+    expect(validatePackMeta({ ...valid, id: 'builtin.red-fox' }).id).toBe('builtin.red-fox');
+  });
+
+  it.each([
+    ['an unknown prefix', 'official.fox'],
+    ['no prefix at all', 'fox'],
+    ['a prefix that looks close but is not builtin or community', 'builtins.fox'],
+  ])('rejects an id with %s', (_label, id) => {
+    expect(() => validatePackMeta({ ...valid, id })).toThrow(/id/i);
+  });
+
+  it.each([
+    ['an uppercase slug', 'builtin.Fox'],
+    ['a leading hyphen', 'builtin.-fox'],
+    ['a trailing hyphen', 'builtin.fox-'],
+    ['an empty slug', 'builtin.'],
+    ['an underscore', 'builtin.red_fox'],
+  ])('rejects a builtin id with %s', (_label, id) => {
+    expect(() => validatePackMeta({ ...valid, id })).toThrow(/id/i);
   });
 
   it('rejects a renderer other than sprite', () => {

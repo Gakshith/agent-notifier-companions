@@ -9,6 +9,8 @@ export type PackAnimation = {
   loop: LoopMode;
 };
 
+export type Distribution = 'builtin' | 'community';
+
 export type PackMeta = {
   version: 2;
   id: string;
@@ -19,13 +21,16 @@ export type PackMeta = {
   movementStyle: MovementStyle;
   renderer: 'sprite';
   animation: PackAnimation;
+  // Derived from the id prefix, never authored, so a manifest can never
+  // disagree with its own id.
+  distribution: Distribution;
 };
 
 export const RESERVED_PACK_IDS: readonly string[] = ['butterfly', 'firecracker'];
 
 const MOVEMENT_STYLES: readonly MovementStyle[] = ['airborne', 'grounded', 'hovering'];
 const LOOP_MODES: readonly LoopMode[] = ['forward', 'pingPong'];
-const ID_PATTERN = /^community\.[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+const ID_PATTERN = /^(community|builtin)\.[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 // Control characters carry no meaning in a display string and can corrupt
 // terminal output, so they are removed rather than rejected. Match the Unicode
@@ -84,8 +89,9 @@ export function validatePackMeta(raw: unknown): PackMeta {
     throw new Error(`id "${id}" is reserved for a built-in companion`);
   }
   if (!ID_PATTERN.test(id)) {
-    throw new Error(`id "${id}" must match community.<slug>`);
+    throw new Error(`id "${id}" must match community.<slug> or builtin.<slug>`);
   }
+  const distribution: Distribution = id.startsWith('builtin.') ? 'builtin' : 'community';
 
   if (source.renderer !== 'sprite') {
     throw new Error('renderer must be "sprite"');
@@ -109,5 +115,6 @@ export function validatePackMeta(raw: unknown): PackMeta {
     movementStyle: source.movementStyle as MovementStyle,
     renderer: 'sprite',
     animation: validateAnimation(source.animation),
+    distribution,
   };
 }

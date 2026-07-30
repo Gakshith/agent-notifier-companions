@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { getPack, listPacks } from './packs';
+import { getPack, listPacks, partitionPacks } from './packs';
 
 function meta(id: string, displayName: string) {
   return {
@@ -87,5 +87,45 @@ describe('getPack', () => {
 
   it('returns null for an unknown id', async () => {
     expect(await getPack('community.nope', dir)).toBeNull();
+  });
+});
+
+describe('builtin packs', () => {
+  it('has a null packUrl and a real previewUrl', async () => {
+    const builtinDir = await mkdtemp(join(tmpdir(), 'anc-builtin-'));
+    await writeFile(
+      join(builtinDir, 'builtin.glow-wing.json'),
+      JSON.stringify(meta('builtin.glow-wing', 'Glow Wing')),
+    );
+    const [pack] = await listPacks(builtinDir);
+    expect(pack.packUrl).toBeNull();
+    expect(pack.previewUrl).toBe('/packs/builtin.glow-wing/preview.webp');
+    expect(pack.distribution).toBe('builtin');
+  });
+
+  it('leaves a community pack with a real packUrl', async () => {
+    const [apple] = await listPacks(dir);
+    expect(apple.packUrl).toBe('/packs/community.apple/pack.zip');
+    expect(apple.distribution).toBe('community');
+  });
+});
+
+describe('partitionPacks', () => {
+  it('splits builtin and community packs, preserving sort order within each group', async () => {
+    const mixedDir = await mkdtemp(join(tmpdir(), 'anc-partition-'));
+    await writeFile(join(mixedDir, 'builtin.zeta.json'), JSON.stringify(meta('builtin.zeta', 'Zeta')));
+    await writeFile(join(mixedDir, 'builtin.alpha.json'), JSON.stringify(meta('builtin.alpha', 'Alpha')));
+    await writeFile(join(mixedDir, 'community.zebra.json'), JSON.stringify(meta('community.zebra', 'Zebra')));
+    await writeFile(join(mixedDir, 'community.apple.json'), JSON.stringify(meta('community.apple', 'apple')));
+
+    const packs = await listPacks(mixedDir);
+    const { builtin, community } = partitionPacks(packs);
+
+    expect(builtin.map((pack) => pack.id)).toEqual(['builtin.alpha', 'builtin.zeta']);
+    expect(community.map((pack) => pack.id)).toEqual(['community.apple', 'community.zebra']);
+  });
+
+  it('returns empty arrays for an empty input', () => {
+    expect(partitionPacks([])).toEqual({ builtin: [], community: [] });
   });
 });

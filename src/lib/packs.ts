@@ -4,7 +4,8 @@ import { type PackMeta, validatePackMeta } from './pack';
 
 export type Pack = PackMeta & {
   previewUrl: string;
-  packUrl: string;
+  // Built-in packs ship with the app and have no downloadable archive.
+  packUrl: string | null;
 };
 
 export const CONTENT_DIR = join(process.cwd(), 'content', 'packs');
@@ -13,7 +14,7 @@ function toPack(meta: PackMeta): Pack {
   return {
     ...meta,
     previewUrl: `/packs/${meta.id}/preview.webp`,
-    packUrl: `/packs/${meta.id}/pack.zip`,
+    packUrl: meta.distribution === 'builtin' ? null : `/packs/${meta.id}/pack.zip`,
   };
 }
 
@@ -53,4 +54,12 @@ export async function getPack(
 ): Promise<Pack | null> {
   const packs = await listPacks(contentDir);
   return packs.find((pack) => pack.id === id) ?? null;
+}
+
+// Array.prototype.filter is stable, so each group keeps the sort order listPacks produced.
+export function partitionPacks(packs: Pack[]): { builtin: Pack[]; community: Pack[] } {
+  return {
+    builtin: packs.filter((pack) => pack.distribution === 'builtin'),
+    community: packs.filter((pack) => pack.distribution === 'community'),
+  };
 }
