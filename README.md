@@ -35,5 +35,12 @@ builds without them.
 
 ## Status
 
-Phase 1: browse and install. Creator uploads are not open yet — see `/submit`.
-One-click install requires Agent Notifier 0.2 or newer, which is in development.
+Phase 1: browse and install.
+
+**Built-in companions** — the butterfly and the firecracker — ship inside Agent
+Notifier itself. They are showcased here, not distributed: there is no download
+and nothing to install, you pick them from the app's menu bar.
+
+**Community companions** are installable packs. Creator uploads are not open yet
+(see `/submit`), so the ones listed today are seeded. One-click install requires
+Agent Notifier 0.2 or newer, which is in development.

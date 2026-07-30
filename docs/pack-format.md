@@ -70,3 +70,16 @@ an identity or trust signal.
 
 Exactly `frameCount` PNG files named `frame_NNN.png`, numbered from 001 with no
 gaps, each matching the declared width and height. Transparency is preserved.
+
+## Built-in versus community
+
+A pack id carries its distribution:
+
+| Prefix | Meaning |
+|--------|---------|
+| `builtin.<slug>` | Ships inside the app. Showcased only — no archive, no install. |
+| `community.<slug>` | Distributed as a ZIP and installed via `agent-notifier://install`. |
+
+Anything you publish is a `community.` pack. The `builtin.` prefix is reserved
+for companions compiled into the app, and the bare ids `butterfly` and
+`firecracker` are rejected outright.
