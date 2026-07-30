@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "community.halo-ring",
+  "displayName": "Halo Ring",
+  "author": "Agent Notifier",
+  "summary": "A slim teal ring that spins in place above your work",
+  "symbolName": "circle.dashed",
+  "movementStyle": "hovering",
+  "renderer": "sprite",
+  "animation": {
+    "fps": 12,
+    "frameCount": 24,
+    "width": 256,
+    "height": 256,
+    "loop": "forward"
+  }
+}

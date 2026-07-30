@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "community.pulse-orb",
+  "displayName": "Pulse Orb",
+  "author": "Agent Notifier",
+  "summary": "A soft amber orb that breathes while it drifts across your screen",
+  "symbolName": "circle.fill",
+  "movementStyle": "airborne",
+  "renderer": "sprite",
+  "animation": {
+    "fps": 12,
+    "frameCount": 24,
+    "width": 256,
+    "height": 256,
+    "loop": "forward"
+  }
+}

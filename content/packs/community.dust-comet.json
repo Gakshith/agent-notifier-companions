@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "community.dust-comet",
+  "displayName": "Dust Comet",
+  "author": "Agent Notifier",
+  "summary": "A small comet that skims along the bottom of the display",
+  "symbolName": "sparkle",
+  "movementStyle": "grounded",
+  "renderer": "sprite",
+  "animation": {
+    "fps": 12,
+    "frameCount": 24,
+    "width": 256,
+    "height": 256,
+    "loop": "forward"
+  }
+}
