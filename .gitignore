@@ -26,3 +26,6 @@ coverage/
 
 *.log
 *.tmp
+
+# Internal design notes — kept local, not published
+docs/superpowers/
