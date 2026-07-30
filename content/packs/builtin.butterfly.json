@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "builtin.butterfly",
+  "displayName": "Butterfly",
+  "author": "Agent Notifier",
+  "summary": "Painterly Blender wings with iridescent shimmer and organic flight",
+  "symbolName": "camera.macro",
+  "movementStyle": "airborne",
+  "renderer": "sprite",
+  "animation": {
+    "fps": 24,
+    "frameCount": 48,
+    "width": 384,
+    "height": 384,
+    "loop": "forward"
+  }
+}

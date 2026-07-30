@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "id": "builtin.firecracker",
+  "displayName": "Firecracker",
+  "author": "Agent Notifier",
+  "summary": "A procedural fireworks burst that celebrates finished work",
+  "symbolName": "sparkles",
+  "movementStyle": "hovering",
+  "renderer": "sprite",
+  "animation": {
+    "fps": 12,
+    "frameCount": 48,
+    "width": 384,
+    "height": 384,
+    "loop": "forward"
+  }
+}
