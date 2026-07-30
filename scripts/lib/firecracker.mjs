@@ -78,6 +78,14 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+// How far a spark's hot core leans toward white (0 = pure spark colour,
+// 1 = pure white). Kept < 1 so even the very centre keeps a hint of hue.
+const CORE_MIX = 0.72;
+
+function mixToWhite(color, amount) {
+  return [lerp(color[0], 255, amount), lerp(color[1], 255, amount), lerp(color[2], 255, amount)];
+}
+
 /** Clamp an additive-accumulated channel value into a valid byte. Overlapping
  * bright sparks push these well past 255; a raw `Uint8Array` write wraps
  * (256 -> 0) instead of clamping, so every write goes through this first. */
@@ -148,9 +156,11 @@ function emitterParams(shell) {
 }
 
 // The Swift spark texture is a 24pt soft dot; `scale` is SKEmitterNode's
-// particleScale multiplier.
+// particleScale multiplier. Doubled from the source's raw px-per-pt value
+// (and given a higher floor) so a spark reads as an actual glow -- a 1-2px
+// core plus a 3-6px coloured falloff -- instead of a near-single pixel.
 function sparkRadius(scale) {
-  return Math.max(1.1, ((24 * scale) / 2) * SCALE);
+  return Math.max(2.2, ((24 * scale) / 2) * SCALE * 2);
 }
 
 function buildShell(def, rng) {
@@ -210,11 +220,13 @@ const SHELLS = (() => {
   return SHELL_DEFS.map((def) => buildShell(def, rng));
 })();
 
-// Additive splat with a soft quadratic falloff, clipped to CANVAS_MARGIN so
-// nothing ever reaches the literal edge pixels. Reused for the halo, the
-// core, the comet head, its trail, and every spark -- it's the one drawing
-// primitive the whole renderer needs.
-function splat(canvas, cx, cy, radius, color, alpha) {
+// Additive splat with a soft power-law falloff, clipped to CANVAS_MARGIN so
+// nothing ever reaches the literal edge pixels. `sharpness` controls how
+// tightly the intensity concentrates near the centre: low (~1.2-1.4) reads
+// as a broad soft bloom, high (~2.2-2.4) reads as a tight hot point. This is
+// the one drawing primitive the whole renderer needs -- everything else
+// (glow sparks, the burst flash, the comet) is built out of calls to it.
+function splat(canvas, cx, cy, radius, color, alpha, sharpness = 2) {
   if (alpha <= 0 || radius <= 0) return;
   const minX = Math.max(CANVAS_MARGIN, Math.floor(cx - radius));
   const maxX = Math.min(WIDTH - CANVAS_MARGIN - 1, Math.ceil(cx + radius));
@@ -227,7 +239,7 @@ function splat(canvas, cx, cy, radius, color, alpha) {
       const d = Math.hypot(dx, dy);
       if (d >= radius) continue;
       const falloff = 1 - d / radius;
-      const intensity = alpha * falloff * falloff;
+      const intensity = alpha * falloff ** sharpness;
       if (intensity <= 0) continue;
       const idx = (y * WIDTH + x) * 4;
       canvas[idx] += intensity * color[0];
@@ -236,6 +248,20 @@ function splat(canvas, cx, cy, radius, color, alpha) {
       canvas[idx + 3] += intensity * 255;
     }
   }
+}
+
+// Draws one point of *light* rather than a flat dot: a soft coloured outer
+// glow (broad falloff, so overlapping sparks bloom into each other under
+// additive compositing) plus a tight near-white hot core on top (mixed
+// toward white via CORE_MIX, sharp falloff). This is the primitive that
+// makes a burst read as fireworks instead of scattered dust -- used for
+// every spark, the comet head, and its trail.
+function drawGlow(canvas, cx, cy, radius, color, alpha) {
+  if (alpha <= 0 || radius <= 0) return;
+  const glowRadius = Math.max(3, Math.min(6.5, radius));
+  const coreRadius = Math.max(1, Math.min(2.2, radius * 0.45));
+  splat(canvas, cx, cy, glowRadius, color, Math.min(1.3, alpha * 1.1), 1.4);
+  splat(canvas, cx, cy, coreRadius, mixToWhite(color, CORE_MIX), Math.min(1.6, alpha * 1.7), 2.4);
 }
 
 function drawShell(canvas, shell, t) {
@@ -254,38 +280,45 @@ function drawShell(canvas, shell, t) {
     const frac = localT / TRAVEL_DURATION;
     const cx = lerp(shell.startX, shell.burstX, frac);
     const cy = lerp(shell.startY, shell.burstY, frac);
-    splat(canvas, cx, cy, (30 / 2) * SCALE, shell.colors[0], 1);
+    drawGlow(canvas, cx, cy, (30 / 2) * SCALE, shell.colors[0], 1);
 
     // Trailing sparks: a handful of earlier points on the same path, fading
     // and shrinking with age -- cheap stand-in for the Swift trail emitter.
+    // Glowing (not flat dots) so the comet reads as a streak of light.
     for (let k = 0; k < TRAIL_COUNT; k += 1) {
       const sampleT = localT - k * 0.045;
       if (sampleT < 0) continue;
       const sampleFrac = Math.min(1, sampleT / TRAVEL_DURATION);
       const tx = lerp(shell.startX, shell.burstX, sampleFrac) + shell.trailJitter[k];
       const ty = lerp(shell.startY, shell.burstY, sampleFrac);
-      const trailAlpha = (1 - k / TRAIL_COUNT) * 0.6;
-      splat(canvas, tx, ty, shell.trailRadius * (1 - 0.08 * k), shell.colors[0], trailAlpha);
+      const trailAlpha = (1 - k / TRAIL_COUNT) * 0.85;
+      drawGlow(canvas, tx, ty, shell.trailRadius * (1 - 0.08 * k), shell.colors[0], trailAlpha);
     }
     return;
   }
 
   const burstElapsed = localT - TRAVEL_DURATION;
 
-  // Soft expanding halo flash: grows 0.3x -> 4.2x over 0.3s, fades over 0.42s.
+  // Soft expanding halo flash: grows 0.3x -> 4.2x over 0.3s, fades over
+  // 0.42s. Broad falloff (1.3) and a high peak alpha so detonation genuinely
+  // pops; alpha decays on a curve steeper than linear so it still reads as a
+  // fast, snappy flash rather than a slow fade.
   if (burstElapsed <= 0.42) {
     const growth = lerp(0.3, 4.2, Math.min(1, burstElapsed / 0.3));
     const haloRadius = 60 * SCALE * growth;
-    const haloAlpha = 0.5 * Math.max(0, 1 - burstElapsed / 0.42);
-    splat(canvas, shell.burstX, shell.burstY, haloRadius, shell.colors[0], haloAlpha);
+    const haloFade = Math.max(0, 1 - burstElapsed / 0.42);
+    const haloAlpha = 0.9 * haloFade ** 1.4;
+    splat(canvas, shell.burstX, shell.burstY, haloRadius, shell.colors[0], haloAlpha, 1.3);
   }
 
-  // White core: grows 0.2x -> 6.0x over 0.24s, fades over 0.34s.
+  // White-hot core: grows 0.2x -> 6.4x over 0.24s, fades over 0.34s. Alpha
+  // peaks above 1 so the tight, sharp-falloff centre stays fully saturated
+  // white even a few pixels out -- the "genuine pop" at detonation.
   if (burstElapsed <= 0.34) {
-    const growth = lerp(0.2, 6.0, Math.min(1, burstElapsed / 0.24));
+    const growth = lerp(0.2, 6.4, Math.min(1, burstElapsed / 0.24));
     const coreRadius = 30 * SCALE * growth;
-    const coreAlpha = Math.max(0, 1 - burstElapsed / 0.34);
-    splat(canvas, shell.burstX, shell.burstY, coreRadius, WHITE, coreAlpha);
+    const coreAlpha = 1.3 * Math.max(0, 1 - burstElapsed / 0.34);
+    splat(canvas, shell.burstX, shell.burstY, coreRadius, WHITE, coreAlpha, 2.2);
   }
 
   for (const particles of Object.values(shell.particleGroups)) {
@@ -297,9 +330,14 @@ function drawShell(canvas, shell, t) {
         shell.burstY +
         Math.sin(p.angle) * p.speed * burstElapsed +
         0.5 * p.gravity * burstElapsed * burstElapsed;
-      const alpha = p.flicker ? keyframeAlpha(normT) : Math.max(0, 1 - normT);
-      const radius = p.baseRadius * (1 - 0.2 * normT);
-      splat(canvas, x, y, radius, p.color, alpha);
+      // Flicker particles keep their keyframed glitter curve; everything
+      // else fades on a normT^2 curve (stays bright most of its life, then
+      // drops fast at the end) instead of a straight linear ramp -- a spark
+      // should read as a bright ember that snuffs out, not a dimmer switch.
+      const alpha = p.flicker ? keyframeAlpha(normT) : Math.max(0, 1 - normT * normT);
+      if (alpha <= 0) continue;
+      const radius = p.baseRadius * (1 - 0.15 * normT);
+      drawGlow(canvas, x, y, radius, p.color, alpha);
     }
   }
 }

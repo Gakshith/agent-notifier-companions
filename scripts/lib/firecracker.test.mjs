@@ -63,4 +63,24 @@ describe('firecracker simulation', () => {
     }
     expect(offenders, `frames below the 300 lit-pixel floor:\n${offenders.join('\n')}`).toEqual([]);
   });
+
+  it('has a real hot core, not just dim scattered dust, at the peak burst frame', () => {
+    // Regression guard for the "faint scattered dust" visual-quality bug:
+    // sparks used to be near-single pixels at low alpha, so a burst had
+    // plenty of alpha>10 pixels but almost none that were genuinely bright.
+    // Frame 35 is the densest overlapping burst in the loop (measured
+    // ~7976 pixels with alpha>200 after the glow rework, vs a ceiling of
+    // ~866 anywhere in the old single-pixel-spark renderer) -- 2500 sits
+    // with headroom below the current peak and well above what dust-style
+    // rendering could ever produce.
+    const frame = renderFrame(35);
+    let brightPixels = 0;
+    for (let p = 3; p < frame.length; p += 4) {
+      if (frame[p] > 200) brightPixels += 1;
+    }
+    expect(
+      brightPixels,
+      `frame 35 has only ${brightPixels} pixels with alpha>200 (expected >= 2500) -- bursts are reading as dust again`,
+    ).toBeGreaterThanOrEqual(2500);
+  });
 });
