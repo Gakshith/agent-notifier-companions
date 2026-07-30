@@ -83,7 +83,7 @@ export function validatePackMeta(raw: unknown): PackMeta {
   if (RESERVED_PACK_IDS.includes(id)) {
     throw new Error(`id "${id}" is reserved for a built-in companion`);
   }
-  if (!ID_PATTERN.test(id) || id.length > 60) {
+  if (!ID_PATTERN.test(id)) {
     throw new Error(`id "${id}" must match community.<slug>`);
   }
 

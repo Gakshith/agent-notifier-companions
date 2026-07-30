@@ -18,11 +18,19 @@ export default function SubmitPage() {
         <p className="mt-3 text-ink-400">
           A folder of transparent PNG frames plus a small JSON manifest describing the
           frame rate, size, and how it moves. No code, ever — which is why installing one
-          cannot run anything on your machine.
+          cannot run anything on your machine. See the full{' '}
+          <a
+            href="https://github.com/Gakshith/agent-notifier-companions/blob/main/docs/pack-format.md"
+            className="text-amber-accent hover:underline"
+          >
+            pack format
+          </a>{' '}
+          for the manifest schema, id rules, frame naming, and checksums.
         </p>
         {/* Deliberately not linking to the app repo's companion-packs.md: that document
             describes manifest v1, under which community packs are not loadable at all.
-            Summarise the v2 rules this site actually enforces instead. */}
+            We link to this repository's own docs/pack-format.md instead, which describes
+            the v2 rules this site actually enforces. Summarise those rules below too. */}
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
             <dt className="text-ink-400">Frames</dt>

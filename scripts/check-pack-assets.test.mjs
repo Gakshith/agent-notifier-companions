@@ -53,4 +53,11 @@ describe('checkPackAssets', () => {
     const problems = await checkPackAssets(contentDir, publicPacksDir);
     expect(problems.join(' ')).toMatch(/filename/i);
   });
+
+  it('ignores a directory whose name ends in .json', async () => {
+    const { contentDir, publicPacksDir } = await fixture();
+    await mkdir(join(contentDir, 'community.trap.json'), { recursive: true });
+    const problems = await checkPackAssets(contentDir, publicPacksDir);
+    expect(problems).toEqual([]);
+  });
 });

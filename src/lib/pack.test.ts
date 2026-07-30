@@ -93,6 +93,20 @@ describe('validatePackMeta', () => {
     ).toThrow(/animation/i);
   });
 
+  it.each([
+    ['fps at the floor', { fps: 1 }],
+    ['fps at the cap', { fps: 24 }],
+    ['frameCount at the floor', { frameCount: 1 }],
+    ['frameCount at the cap', { frameCount: 96 }],
+    ['width at the floor', { width: 16 }],
+    ['width at the cap', { width: 512 }],
+    ['height at the floor', { height: 16 }],
+    ['height at the cap', { height: 512 }],
+  ])('accepts %s', (_label, patch) => {
+    const animation = { ...valid.animation, ...patch };
+    expect(validatePackMeta({ ...valid, animation }).animation).toEqual(animation);
+  });
+
   it('rejects an unknown loop mode', () => {
     expect(() =>
       validatePackMeta({ ...valid, animation: { ...valid.animation, loop: 'reverse' } }),

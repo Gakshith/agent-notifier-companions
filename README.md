@@ -16,6 +16,9 @@ npm run dev
 
 - `npm test` — unit tests
 - `npm run build` — verifies every pack has its assets, then exports the static site
+- `NEXT_PUBLIC_SITE_ORIGIN=https://your-domain npm run build` — production build; one-click
+  install requires this to be set to an `https` origin, and omitting it produces
+  `localhost` install links
 - `node scripts/make-seed-pack.mjs <orb|ring|comet>` — regenerates a seed pack
 
 Requires the `zip` and `img2webp` binaries for pack generation only; the site itself

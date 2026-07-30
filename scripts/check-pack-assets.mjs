@@ -17,7 +17,9 @@ async function describeAsset(path) {
 
 export async function checkPackAssets(contentDir = CONTENT_DIR, publicPacksDir = PUBLIC_PACKS_DIR) {
   const problems = [];
-  const entries = (await readdir(contentDir)).filter((name) => name.endsWith('.json'));
+  const entries = (await readdir(contentDir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => entry.name);
 
   for (const fileName of entries) {
     let id;

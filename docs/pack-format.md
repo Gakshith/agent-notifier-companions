@@ -38,7 +38,11 @@ Distributed as a ZIP holding exactly one `.agentpack` directory.
 - `id` must be `community.<slug>`; the slug is 1–40 characters of lowercase letters,
   digits, and hyphens, and cannot start or end with a hyphen.
 - `movementStyle` is `airborne`, `grounded`, or `hovering`.
+- `renderer` must be exactly `"sprite"`.
 - `loop` is `forward` or `pingPong`.
+- `displayName`, `author`, `summary`, and `symbolName` must all be non-empty after
+  trimming whitespace.
+- `symbolName` may contain only letters, digits, and dots (`[A-Za-z0-9.]`).
 
 ## Limits
 
@@ -48,6 +52,10 @@ Distributed as a ZIP holding exactly one `.agentpack` directory.
 | Frame size | 16–512 px per side |
 | Frame rate | 1–24 fps |
 | Compressed pack | 50 MB |
+| `displayName` length | at most 40 characters |
+| `author` length | at most 60 characters |
+| `summary` length | at most 160 characters |
+| `symbolName` length | at most 60 characters |
 
 ## checksums.json
 

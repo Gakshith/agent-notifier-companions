@@ -6,9 +6,17 @@ export function CopyCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // On a non-secure origin (plain http), navigator.clipboard is undefined; on some
+    // browsers writeText can also reject (permission denied). Either way the command
+    // text stays visible and selectable, so failing here silently is fine.
+    if (!navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore — button just does nothing, no dead unhandled rejection
+    }
   }
 
   return (

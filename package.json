@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run check:packs && next build",
-    "start": "next start",
     "test": "vitest run",
     "check:packs": "node scripts/check-pack-assets.mjs"
   },

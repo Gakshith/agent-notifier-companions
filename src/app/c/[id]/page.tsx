@@ -7,6 +7,15 @@ import { getPack, listPacks } from '@/lib/packs';
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? 'http://localhost:3000';
 
 export async function generateStaticParams() {
+  if (!SITE_ORIGIN.startsWith('https://')) {
+    // Runs once for the whole build (generateStaticParams is called once, not per page).
+    console.warn(
+      `NEXT_PUBLIC_SITE_ORIGIN is not set to an https origin (got "${SITE_ORIGIN}"). ` +
+        'Install links will be omitted from every detail page; only the terminal command ' +
+        'will be shown, and it will point at this origin. Set NEXT_PUBLIC_SITE_ORIGIN to ' +
+        'your production https domain before building for deployment.',
+    );
+  }
   const packs = await listPacks();
   return packs.map((pack) => ({ id: pack.id }));
 }
